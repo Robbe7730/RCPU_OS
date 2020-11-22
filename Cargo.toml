@@ -2,8 +2,9 @@
 name = "rcpu_os"
 version = "0.1.0"
 authors = ["Robbe Van Herck <robbe@robbevanherck.be>"]
-edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[profile.dev]
+panic = "abort"
 
-[dependencies]
+[profile.release]
+panic = "abort"
