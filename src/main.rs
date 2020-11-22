@@ -11,20 +11,14 @@ pub extern "C" fn _start() -> ! {
 
     rcpu_os::init();
 
-    fn stack_overflow() {
-        stack_overflow(); // for each recursion, the return address is pushed
-    }
-
-    stack_overflow();
-
     println!("It did not crash!");
 
-    loop{}
+    rcpu_os::hlt_loop();
 }
 
 // Function that gets called on panic
 #[panic_handler]
 fn panic(info: &PanicInfo) -> ! {
     println!("{}", info);
-    loop{}
+    rcpu_os::hlt_loop();
 }
