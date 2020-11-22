@@ -5,3 +5,4 @@ authors = ["Robbe Van Herck <robbe@robbevanherck.be>"]
 
 [dependencies]
 bootloader = "0.9.8"
+volatile = "0.2.6"
