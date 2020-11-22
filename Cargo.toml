@@ -3,8 +3,3 @@ name = "rcpu_os"
 version = "0.1.0"
 authors = ["Robbe Van Herck <robbe@robbevanherck.be>"]
 
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"
