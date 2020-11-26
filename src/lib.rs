@@ -47,20 +47,6 @@ pub extern fn rust_main(multiboot_information_address: usize) {
         working_space_start as usize
     );
 
-    // Do some reads and writes
-    println!("Value: {:#06x}", running_program.read(0));
-
-    running_program.write(0, 0x1337);
-
-    println!("Value: {:#06x}", running_program.read(0));
-    println!("Value: {:#06x}", running_program.read(0xffff));
-
-    running_program.write(0xffff, 0x1337);
-
-    println!("Value: {:#06x}", running_program.read(0xffff));
-
-
-
     // Halt the processor
     hlt_loop();
 }
