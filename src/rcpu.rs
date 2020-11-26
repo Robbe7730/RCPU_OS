@@ -1,15 +1,15 @@
 use crate::println;
+use crate::memory::memcpy;
 
 use multiboot2::ModuleTag;
 
 pub struct RCPUProgram {
     start: usize,
-    end: usize,
 }
 
 impl RCPUProgram {
     pub fn read(&self, index: usize) -> u16 {
-        if self.start + index > self.end {
+        if index > 0xffff {
             panic!("Read at index {} out of bounds!", index);
         }
 
@@ -22,7 +22,7 @@ impl RCPUProgram {
     }
 
     pub fn write(&self, index: usize, value: u16) {
-        if self.start + index > self.end {
+        if index > 0xffff {
             panic!("Write at index {} out of bounds!", index);
         }
 
@@ -32,11 +32,19 @@ impl RCPUProgram {
         }
     }
 
-    pub fn from_module_tag(tag: &ModuleTag) -> RCPUProgram {
+    pub fn from_module_tag(tag: &ModuleTag, working_space_start: usize) -> RCPUProgram {
+        // Copy the program to the working space
+        unsafe {
+            memcpy(
+                working_space_start as *mut u8,
+                tag.start_address() as *const u8,
+                (tag.end_address() - tag.start_address()) as usize
+            );
+        }
+
         // Casting to usize as they are u32 according to the spec
         RCPUProgram {
-            start: tag.start_address() as usize,
-            end: tag.end_address() as usize,
+            start: working_space_start
         }
     }
 }

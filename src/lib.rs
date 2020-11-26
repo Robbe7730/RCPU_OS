@@ -14,6 +14,7 @@ mod terminal;
 mod interrupts;
 mod gdt;
 mod rcpu;
+mod memory;
 
 use core::panic::PanicInfo;
 
@@ -23,30 +24,44 @@ pub extern fn rust_main(multiboot_information_address: usize) {
 
     init();
 
-    println!("multiboot_information_address: {}", multiboot_information_address);
-
     let boot_info = unsafe{ multiboot2::load(multiboot_information_address) };
 
-    // Separate iterator because count() consumes it
-    let num_modules = boot_info.module_tags().count();
+    let memory_tag = boot_info.memory_map_tag().expect("No memory map tag found");
 
-    let module_tags = boot_info.module_tags();
-
-    println!("Modules available ({}):", num_modules);
-    for module_tag in module_tags {
-        println!("{}: {}-{}", module_tag.name(), module_tag.start_address(),
-            module_tag.end_address());
-    }
+    // Find the first memory area big enoug to hold the RCPU memory space
+    // memory_areas only shows available memory areas
+    // TODO: this could probably do with better use of paging
+    let working_space_start = memory_tag.memory_areas().fold(
+        None,
+        |_acc, memory_area|
+            if memory_area.size() >= 0xffff {
+                Some(memory_area.start_address())
+            } else {
+                None
+            }
+        ).expect("No available memory found");
 
     // For now, just select the first module
-    let running_program = rcpu::RCPUProgram::from_module_tag(boot_info.module_tags().next().expect("No modules found!"));
+    let running_program = rcpu::RCPUProgram::from_module_tag(
+        boot_info.module_tags().next().expect("No modules found!"),
+        working_space_start as usize
+    );
 
+    // Do some reads and writes
     println!("Value: {:#06x}", running_program.read(0));
 
     running_program.write(0, 0x1337);
 
     println!("Value: {:#06x}", running_program.read(0));
+    println!("Value: {:#06x}", running_program.read(0xffff));
 
+    running_program.write(0xffff, 0x1337);
+
+    println!("Value: {:#06x}", running_program.read(0xffff));
+
+
+
+    // Halt the processor
     hlt_loop();
 }
 
