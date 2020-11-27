@@ -1,7 +1,20 @@
 use crate::println;
 use crate::memory::memcpy;
+use crate::memory::swap_endianness;
+use crate::rcpu::operations::RCPUOperation;
+
+mod operations;
 
 use multiboot2::ModuleTag;
+
+pub enum RCPURegister {
+    A = 0,
+    B,
+    C,
+    D,
+    IP,
+    SP
+}
 
 struct RCPUState {
     ip: u16,
@@ -28,7 +41,8 @@ impl RCPUProgram {
         unsafe {
             ret = *self.code_start.offset(index as isize);
         }
-        ret
+        // TODO: this is kinda ugly
+        swap_endianness(ret)
     }
 
     fn write(&self, index: usize, value: u16) {
@@ -67,5 +81,23 @@ impl RCPUProgram {
                 d: 0
             }
         }
+    }
+
+    fn execute(&mut self, operation: RCPUOperation) {
+        println!("{:#?}", operation);
+    }
+
+    pub fn step(&mut self) {
+        // Get the current opcode
+        let binary_opcode: u16 = self.read(self.state.ip.into());
+        
+        // Parse and execute
+        let operation = RCPUOperation {
+            opcode: binary_opcode
+        };
+        self.execute(operation);
+
+        // Increase IP
+        self.state.ip += 1;
     }
 }

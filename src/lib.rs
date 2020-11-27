@@ -42,10 +42,15 @@ pub extern fn rust_main(multiboot_information_address: usize) {
         ).expect("No available memory found");
 
     // For now, just select the first module
-    let running_program = rcpu::RCPUProgram::from_module_tag(
+    let mut running_program = rcpu::RCPUProgram::from_module_tag(
         boot_info.module_tags().next().expect("No modules found!"),
         working_space_start as usize
     );
+
+
+    for _ in 0..4 {
+        running_program.step()
+    }
 
     // Halt the processor
     hlt_loop();
