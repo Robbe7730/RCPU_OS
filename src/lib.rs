@@ -48,7 +48,7 @@ pub extern fn rust_main(multiboot_information_address: usize) {
     );
 
 
-    for _ in 0..4 {
+    while running_program.running {
         running_program.step()
     }
 

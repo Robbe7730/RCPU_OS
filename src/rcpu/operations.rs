@@ -1,16 +1,16 @@
 // Bitmap for the different fields in the opcode
 const OPCODE_BITMAP: u16        = 0b0000000000001111;
-const SOURCE_BITMAP: u16        = 0b0000000000110000;
-const DESTINATION_BITMAP: u16   = 0b0000000011000000;
+const DESTINATION_BITMAP: u16   = 0b0000000000110000;
+const SOURCE_BITMAP: u16        = 0b0000000011000000;
 const ATH_OPERATION_BITMAP: u16 = 0b0000111100000000;
 const ATH_MODE_BITMAP: u16      = 0b0001000000000000;
 const ATH_SHIFT_BITMAP: u16     = 0b1110000000000000;
-const VALUE_BITMAP: u16     = 0b1111111111000000;
+const VALUE_BITMAP: u16         = 0b1111111111000000;
 
 // How much to shift after applying the bitmap
 const OPCODE_SHIFT: u8          = 0; // Actually unneccesary, but kept for consistency
-const SOURCE_SHIFT: u8          = 4;
-const DESTINATION_SHIFT: u8     = 6;
+const DESTINATION_SHIFT: u8     = 4;
+const SOURCE_SHIFT: u8          = 6;
 const ATH_OPERATION_SHIFT: u8   = 8;
 const ATH_MODE_SHIFT: u8        = 12;
 const ATH_SHIFT_SHIFT: u8       = 13;
@@ -18,7 +18,7 @@ const VALUE_SHIFT: u8           = 6;
 
 use crate::rcpu::RCPURegister;
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub enum RCPUInstructionType {
     MOV = 0,
     LDV,
@@ -38,7 +38,7 @@ pub enum RCPUInstructionType {
     JMR
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub enum RCPUAthOperation {
     Add = 0,
     Subtract,
@@ -54,7 +54,7 @@ pub enum RCPUAthOperation {
     Decrement,
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub enum RCPUAthMode {
     ToDest = 0,
     ToSource
@@ -72,7 +72,7 @@ impl RCPURegister {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug,Clone,Copy)]
 pub struct RCPUOperation {
     pub opcode: u16
 }
