@@ -28,23 +28,23 @@ pub extern fn rust_main(multiboot_information_address: usize) {
 
     let memory_tag = boot_info.memory_map_tag().expect("No memory map tag found");
 
-    // Find the first memory area big enoug to hold the RCPU memory space
+    // Find highest memory area big enoug to hold the RCPU memory space
     // memory_areas only shows available memory areas
     // TODO: this could probably do with better use of paging
-    let working_space_start = memory_tag.memory_areas().fold(
+    let working_space = memory_tag.memory_areas().fold(
         None,
         |_acc, memory_area|
             if memory_area.size() >= 0xffff {
-                Some(memory_area.start_address())
+                Some(memory_area)
             } else {
                 None
             }
-        ).expect("No available memory found");
+        ).expect("No suitable available memory found");
 
-    // For now, just select the first module
+    // TODO For now, just select the first module
     let mut running_program = rcpu::RCPUProgram::from_module_tag(
         boot_info.module_tags().next().expect("No modules found!"),
-        working_space_start as usize
+        working_space
     );
 
 
