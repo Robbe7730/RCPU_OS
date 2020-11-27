@@ -219,7 +219,16 @@ impl RCPUProgram {
                 }
                 self.inc_register(RCPURegister::IP);
             }
-            
+            RCPUInstructionType::CAL => {
+                self.inc_register(RCPURegister::IP);
+                self.push(self.get_register(RCPURegister::IP));
+                let new_ip = self.get_register(operation.destination_register());
+                self.set_register(RCPURegister::IP, new_ip);
+            }
+            RCPUInstructionType::RET => {
+                let new_ip = self.pop();
+                self.set_register(RCPURegister::IP, new_ip);
+            }
             RCPUInstructionType::JLT => {
                 if self.get_register(RCPURegister::A) < self.get_register(operation.destination_register()) {
                     self.set_register(
@@ -241,7 +250,9 @@ impl RCPUProgram {
                 self.set_register(operation.destination_register(), value);
                 self.inc_register(RCPURegister::IP);
             }
-
+            RCPUInstructionType::SYS => {
+                unimplemented!("Syscalls are not supported yet");
+            }
             RCPUInstructionType::HLT => {
                 self.running = false;
             }
@@ -254,12 +265,6 @@ impl RCPUProgram {
                     RCPURegister::IP,
                     self.get_register(operation.source_register())
                 );
-            }
-            _ => {
-                unimplemented!(
-                    "Unimplemented RCPU instruction {:?}",
-                    operation.instruction_type()
-                )
             }
         }
     }
@@ -281,12 +286,12 @@ impl RCPUProgram {
         // Print the name
         println!("Booting {}", tag.name());
 
-        // Set the start pointers
+        // Set the start and end pointers
         let ram_start = memory_area.start_address() as *mut u16;
         let stack_start = (memory_area.start_address() + 65536) as *mut u16;
         let stack_end = memory_area.end_address() as *mut u16;
 
-        // Copy the program to the working space
+        // Copy the program to the RAM
         unsafe {
             memcpy(
                 ram_start as *mut u8,
