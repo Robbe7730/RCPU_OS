@@ -20,7 +20,11 @@ Rust][rust-os-blog]
 - RCPU `stream_num` is 0 for stdin, 1 for stdout
 	- Reading from or writing to an invalid stream (everything except 0 and
 	  1 respectively) causes a panic
-- If Getc cannot read a character, it returns u16::MAX (aka -1 wrapped)
+- If `Getc` cannot read a character, it returns `u16::MAX` (aka -1 wrapped)
+- `Fgets` reads blocking until a null-byte is found or `num_characters` are read
+	- If no nullbyte is found, one is put at `str_ptr + num_read`, so the target 
+	  string needs to be at least `size+1` big if `size` characters are read
+	- To enter a nullbyte the F1 key can be pressed
 
 [rcpu]: https://github.com/redfast00/RCPU
 [rust-os-blog]: https://os.phil-opp.com/

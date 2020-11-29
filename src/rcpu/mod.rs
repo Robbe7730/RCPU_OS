@@ -14,6 +14,7 @@ use crate::rcpu::operations::RCPUOperation;
 use multiboot2::ModuleTag;
 use multiboot2::MemoryArea;
 use pc_keyboard::DecodedKey;
+use pc_keyboard::KeyCode;
 
 mod operations;
 
@@ -149,15 +150,21 @@ impl RCPUProgram {
         match syscall {
             // Pops need to be split up due to compiler problems
             RCPUSyscall::Printf => {
-                let value = self.pop();
-                self.print_string(value, true);
+                let fmt = self.pop();
+                self.print_string(fmt, true);
             }
             RCPUSyscall::Getc => {
                 let stream_num = self.pop();
-                let c = self.get_character(stream_num);
-                self.push(c);
+                let char_read = self.get_character(stream_num);
+                self.push(char_read);
             }
-            _ => panic!("Unimplemented syscall {:?}", syscall)
+            RCPUSyscall::Fgets => {
+                let str_ptr = self.pop();
+                let size = self.pop();
+                let stream_num = self.pop();
+                let chars_read = self.get_string(str_ptr, size, stream_num);
+                self.push(chars_read);
+            }
         }
     }
 
@@ -202,6 +209,45 @@ impl RCPUProgram {
             }
         });
         return ret as u16;
+    }
+
+    fn get_string(&mut self, str_ptr: u16, size: u16, stream_num: u16) -> u16 {
+        if stream_num != 0 {
+            panic!("Invalid stream number: {}", stream_num);
+        }
+
+        let mut chars_read = 0;
+        let mut hit_nullbyte = false;
+        while chars_read < size && !hit_nullbyte {
+            let mut char_read = false;
+            x86_64::instructions::interrupts::without_interrupts(|| {
+                let mut keybuffer = KEYBUFFER.lock();
+                if let Some(key) = keybuffer.deref_mut().next() {
+                    let ret = match key {
+                        DecodedKey::Unicode(c) => Some(c),
+                        DecodedKey::RawKey(KeyCode::F1) => Some('\0'),
+                        _ => None
+                    };
+                    if let Some(c) = ret {
+                        self.write(str_ptr + chars_read, c as u16);
+                        char_read = true;
+                        hit_nullbyte = c == '\0';
+                    }
+                }
+            });
+
+            if char_read {
+                chars_read += 1;
+            } else {
+                x86_64::instructions::interrupts::enable_and_hlt();
+            }
+        }
+
+        // Add ending nullbyte
+        if !hit_nullbyte {
+            self.write(str_ptr + chars_read, 0);
+        }
+        return chars_read;
     }
 
     fn execute(&mut self, operation: RCPUOperation) {
