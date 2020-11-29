@@ -15,8 +15,14 @@ mod interrupts;
 mod gdt;
 mod rcpu;
 mod memory;
+mod keyboard;
 
 use core::panic::PanicInfo;
+use core::convert::TryInto;
+use core::ops::DerefMut;
+use pc_keyboard::DecodedKey;
+
+use keyboard::KEYBUFFER;
 
 #[no_mangle]
 pub extern fn rust_main(multiboot_information_address: usize) {
@@ -26,25 +32,35 @@ pub extern fn rust_main(multiboot_information_address: usize) {
 
     let boot_info = unsafe{ multiboot2::load(multiboot_information_address) };
 
-    let memory_tag = boot_info.memory_map_tag().expect("No memory map tag found");
+    // RCPU memory starts right after the multiboot structure
+    let rcpu_mem_start = boot_info.end_address();
 
-    // Find highest memory area big enoug to hold the RCPU memory space
-    // memory_areas only shows available memory areas
-    // TODO: this could probably do with better use of paging
-    let working_space = memory_tag.memory_areas().fold(
-        None,
-        |_acc, memory_area|
-            if memory_area.size() >= 0xffff {
-                Some(memory_area)
-            } else {
-                None
+    // To find the end, find the memory area containing the start address
+    let memory_map_tag = boot_info.memory_map_tag()
+                .expect("Memory map tag required");
+    let mut rcpu_mem_end: usize = rcpu_mem_start;
+    for memory_area in memory_map_tag.memory_areas() {
+        if memory_area.start_address() <= rcpu_mem_start.try_into().unwrap() &&
+            memory_area.end_address() >= rcpu_mem_start.try_into().unwrap() {
+                rcpu_mem_end = memory_area.end_address().try_into().unwrap();
             }
-        ).expect("No suitable available memory found");
+    }
+
+    loop {
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            let mut keybuffer = KEYBUFFER.lock();
+            for key in keybuffer.deref_mut() {
+                println!("{:?}", key);
+            }
+        });
+        x86_64::instructions::hlt();
+    }
 
     // TODO For now, just select the first module
     let mut running_program = rcpu::RCPUProgram::from_module_tag(
         boot_info.module_tags().next().expect("No modules found!"),
-        working_space
+        rcpu_mem_start,
+        rcpu_mem_end
     );
 
 

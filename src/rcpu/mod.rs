@@ -336,14 +336,14 @@ impl RCPUProgram {
         // println!("New state: {:?}", self.state);
     }
 
-    pub fn from_module_tag(tag: &ModuleTag, memory_area: &MemoryArea) -> RCPUProgram {
+    pub fn from_module_tag(tag: &ModuleTag, rcpu_mem_start: usize, rcpu_mem_end: usize) -> RCPUProgram {
         // Print the name
         println!("Booting {}", tag.name());
 
         // Set the start and end pointers
-        let ram_start = memory_area.start_address() as *mut u16;
-        let stack_start = (memory_area.start_address() + 65536) as *mut u16;
-        let stack_end = memory_area.end_address() as *mut u16;
+        let ram_start = rcpu_mem_start as *mut u16;
+        let stack_start = (rcpu_mem_start + 65536) as *mut u16;
+        let stack_end = rcpu_mem_end as *mut u16;
 
         // Copy the program to the RAM
         unsafe {

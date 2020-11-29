@@ -4,8 +4,8 @@ use x86_64::structures::idt::{InterruptDescriptorTable, InterruptStackFrame};
 use lazy_static::lazy_static;
 
 use crate::println;
-use crate::print;
 use crate::gdt;
+use crate::keyboard::KEYBUFFER;
 
 pub const PIC_1_OFFSET: u8 = 32;
 pub const PIC_2_OFFSET: u8 = PIC_1_OFFSET + 8;
@@ -75,7 +75,7 @@ extern "x86-interrupt" fn timer_interrupt_handler (
 extern "x86-interrupt" fn keyboard_interrupt_handler (
     _stack_frame: &mut InterruptStackFrame)
 {
-    use pc_keyboard::{layouts, DecodedKey, HandleControl, Keyboard, ScancodeSet1};
+    use pc_keyboard::{layouts, HandleControl, Keyboard, ScancodeSet1};
     use spin::Mutex;
     use x86_64::instructions::port::Port;
 
@@ -87,15 +87,13 @@ extern "x86-interrupt" fn keyboard_interrupt_handler (
     }
 
     let mut keyboard = KEYBOARD.lock();
+    let mut keybuffer = KEYBUFFER.lock();
     let mut port = Port::new(0x60);
     let scancode: u8 = unsafe { port.read() };
 
     if let Ok(Some(key_event)) = keyboard.add_byte(scancode) {
         if let Some(key) = keyboard.process_keyevent(key_event) {
-            match key {
-                DecodedKey::Unicode(character) => print!("{}", character),
-                DecodedKey::RawKey(key) => print!("{:?}", key),
-            }
+            keybuffer.push(key);
         }
     }
 
