@@ -109,6 +109,8 @@ pub extern fn rust_main(multiboot_information_address: usize) {
         running_program.step()
     }
 
+    println!("Done, thank you for flying RCPU_OS");
+
     // Halt the processor
     hlt_loop();
 }

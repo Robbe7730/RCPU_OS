@@ -1,9 +1,11 @@
 use core::convert::TryInto;
+use core::ops::DerefMut;
 
 use crate::print;
 use crate::println;
 use crate::memory::memcpy;
 use crate::memory::swap_endianness;
+use crate::keyboard::KEYBUFFER;
 use crate::rcpu::operations::RCPUInstructionType;
 use crate::rcpu::operations::RCPUAthOperation;
 use crate::rcpu::operations::RCPUAthMode;
@@ -11,6 +13,7 @@ use crate::rcpu::operations::RCPUOperation;
 
 use multiboot2::ModuleTag;
 use multiboot2::MemoryArea;
+use pc_keyboard::DecodedKey;
 
 mod operations;
 
@@ -144,8 +147,16 @@ impl RCPUProgram {
     fn syscall(&mut self) {
         let syscall = RCPUSyscall::from(self.pop());
         match syscall {
-            // This needs to be split up due to compiler problems
-            RCPUSyscall::Printf => { let value = self.pop(); self.print_string(value, true); },
+            // Pops need to be split up due to compiler problems
+            RCPUSyscall::Printf => {
+                let value = self.pop();
+                self.print_string(value, true);
+            }
+            RCPUSyscall::Getc => {
+                let stream_num = self.pop();
+                let c = self.get_character(stream_num);
+                self.push(c);
+            }
             _ => panic!("Unimplemented syscall {:?}", syscall)
         }
     }
@@ -173,6 +184,24 @@ impl RCPUProgram {
             curr_char_idx += 1;
             curr_char = self.read(curr_char_idx) as u8 as char;
         }
+    }
+
+    fn get_character(&mut self, stream_num: u16) -> u16 {
+        if stream_num != 0 {
+            panic!("Invalid stream number: {}", stream_num);
+        }
+
+        let mut ret: u16 = u16::MAX;
+        x86_64::instructions::interrupts::without_interrupts(|| {
+            let mut keybuffer = KEYBUFFER.lock();
+            for key in keybuffer.deref_mut() {
+                if let DecodedKey::Unicode(c) = key {
+                    ret = c as u16;
+                    break;
+                }
+            }
+        });
+        return ret as u16;
     }
 
     fn execute(&mut self, operation: RCPUOperation) {

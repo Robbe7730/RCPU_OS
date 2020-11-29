@@ -16,6 +16,11 @@ Rust][rust-os-blog]
 - All strings are ASCII (7 bit), not Latin-1
 - RCPU\_OS stack grows **upwards** instead of downwards. RCPU has no way of
   reading from/writing to SP, so this should not matter to the programs.
+- RCPU syscalls "return" by pushing the result to the stack
+- RCPU `stream_num` is 0 for stdin, 1 for stdout
+	- Reading from or writing to an invalid stream (everything except 0 and
+	  1 respectively) causes a panic
+- If Getc cannot read a character, it returns u16::MAX (aka -1 wrapped)
 
 [rcpu]: https://github.com/redfast00/RCPU
 [rust-os-blog]: https://os.phil-opp.com/
