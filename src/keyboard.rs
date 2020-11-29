@@ -38,7 +38,6 @@ impl Iterator for KeyCodeIter {
 
 impl KeyCodeIter {
     pub fn push(&mut self, key: DecodedKey) {
-        println!("PUSH: {}-{} {:?}", self.head, self.tail, key);
         self.buffer[self.head % KEYBUFFER_SIZE] = key;
         self.head += 1;
     }

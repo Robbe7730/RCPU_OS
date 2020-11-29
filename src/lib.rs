@@ -20,14 +20,14 @@ mod keyboard;
 use core::panic::PanicInfo;
 use core::convert::TryInto;
 use core::ops::DerefMut;
-use pc_keyboard::DecodedKey;
+
+use pc_keyboard::{DecodedKey, KeyCode};
 
 use keyboard::KEYBUFFER;
+use terminal::WRITER;
 
 #[no_mangle]
 pub extern fn rust_main(multiboot_information_address: usize) {
-    println!("Hello RCPU_{}S", 1);
-
     init();
 
     let boot_info = unsafe{ multiboot2::load(multiboot_information_address) };
@@ -46,23 +46,64 @@ pub extern fn rust_main(multiboot_information_address: usize) {
             }
     }
 
-    loop {
+    // Show all modules
+    println!("Available programs");
+    let mut module_iter = boot_info.module_tags();
+    for module in module_iter {
+        println!(" {}", module.name());
+    }
+
+    // Show the selection cursor
+    let num_programs = boot_info.module_tags().count();
+    let mut selected_program_index = 0;
+    let mut selecting = true;
+    {
+        let mut writer = WRITER.lock();
+        writer.put_char_at('>', 24-num_programs, 0);
+    }
+    while selecting {
         x86_64::instructions::interrupts::without_interrupts(|| {
             let mut keybuffer = KEYBUFFER.lock();
             for key in keybuffer.deref_mut() {
-                println!("{:?}", key);
+                // Clear the old one
+                {
+                    let mut writer = WRITER.lock();
+                    writer.put_char_at(' ', 24-num_programs+selected_program_index, 0);
+                }
+
+                
+                // Find the offset
+                match key {
+                    DecodedKey::RawKey(KeyCode::ArrowUp) => {
+                        if selected_program_index > 0 {
+                            selected_program_index -= 1;
+                        }
+                    }
+                    DecodedKey::RawKey(KeyCode::ArrowDown) => {
+                        if selected_program_index < num_programs-1 {
+                            selected_program_index += 1;
+                        }
+                    }
+                    DecodedKey::Unicode('\n') => {selecting = false; break}
+                    _ => (),
+                }
+                selected_program_index %= num_programs;
+
+                // Print the next one
+                {
+                    let mut writer = WRITER.lock();
+                    writer.put_char_at('>', 24-num_programs+selected_program_index, 0);
+                }
             }
         });
         x86_64::instructions::hlt();
     }
 
-    // TODO For now, just select the first module
     let mut running_program = rcpu::RCPUProgram::from_module_tag(
-        boot_info.module_tags().next().expect("No modules found!"),
+        boot_info.module_tags().nth(selected_program_index).expect("Unreachable statement"),
         rcpu_mem_start,
         rcpu_mem_end
     );
-
 
     while running_program.running {
         running_program.step()

@@ -121,6 +121,13 @@ impl Writer {
 
         }
     }
+
+    pub fn put_char_at(&mut self, c: char, x: usize, y: usize) {
+        self.buffer.chars[x][y].write(ScreenChar {
+            ascii_character: c as u8,
+            color_code: ColorCode::new(Color::White, Color::Black)
+        });
+    }
 }
 
 impl fmt::Write for Writer {
