@@ -1,5 +1,6 @@
 use core::convert::TryInto;
 
+use crate::print;
 use crate::println;
 use crate::memory::memcpy;
 use crate::memory::swap_endianness;
@@ -35,6 +36,24 @@ struct RCPUState {
 }
 
 #[derive(Debug,Clone,Copy)]
+pub enum RCPUSyscall {
+    Printf = 0,
+    Fgets,
+    Getc
+}
+
+impl From<u16> for RCPUSyscall {
+    fn from(value: u16) -> RCPUSyscall {
+        match value {
+            0 => RCPUSyscall::Printf,
+            1 => RCPUSyscall::Fgets,
+            2 => RCPUSyscall::Getc,
+            _ => panic!("Invalid syscall number {}", value)
+        }
+    }
+}
+
+#[derive(Debug,Clone,Copy)]
 pub struct RCPUProgram {
     pub running: bool,
     ram_start: *mut u16,
@@ -49,20 +68,20 @@ impl RCPUProgram {
         unsafe {
             ret = *self.ram_start.offset(index as isize);
         }
-        println!("Read {} as {}", index, ret);
+        // println!("Read {} as {}", index, ret);
         // TODO: this is kinda ugly
         swap_endianness(ret)
     }
 
     fn write(&self, index: u16, value: u16) {
-        println!("Wrote {} to {}", value, index);
+        // println!("Wrote {} to {}", value, index);
         unsafe {
             *self.ram_start.offset(index as isize) = swap_endianness(value);
         }
     }
     
     fn push(&mut self, value: u16) {
-        println!("Pushed {} to the stack", value);
+        // println!("Pushed {} to the stack", value);
         unsafe {
             let mem_sp = self.stack_start.offset(
                 self.get_register(RCPURegister::SP).try_into().unwrap()
@@ -86,7 +105,7 @@ impl RCPUProgram {
                 self.get_register(RCPURegister::SP).try_into().unwrap()
             );
         }
-        println!("Popped {} from the stack", swap_endianness(value));
+        // println!("Popped {} from the stack", swap_endianness(value));
         swap_endianness(value)
     }
 
@@ -120,6 +139,40 @@ impl RCPUProgram {
     fn dec_register(&mut self, register: RCPURegister) {
         let value = self.get_register(register);
         self.set_register(register, value.wrapping_sub(1));
+    }
+
+    fn syscall(&mut self) {
+        let syscall = RCPUSyscall::from(self.pop());
+        match syscall {
+            // This needs to be split up due to compiler problems
+            RCPUSyscall::Printf => { let value = self.pop(); self.print_string(value, true); },
+            _ => panic!("Unimplemented syscall {:?}", syscall)
+        }
+    }
+
+    fn print_string(&mut self, str_pointer: u16, should_format: bool) {
+        let mut curr_char_idx = str_pointer;
+        let mut curr_char = self.read(curr_char_idx) as u8 as char; 
+        let mut formatting = false;
+        while curr_char != '\0' {
+            if should_format && formatting {
+                match curr_char {
+                    'd' => print!("{}", self.pop()),
+                    'c' => print!("{}", self.pop() as u8 as char),
+                    // This needs to be split up due to compiler problems
+                    's' => { let value = self.pop(); self.print_string(value, false); },
+                    '%' => print!("%"),
+                    _ => panic!("Invalid formatter %{}", curr_char)
+                }
+                formatting = false;
+            } else if should_format && curr_char == '%' {
+                formatting = true;
+            } else {
+                print!("{}", curr_char);
+            }
+            curr_char_idx += 1;
+            curr_char = self.read(curr_char_idx) as u8 as char;
+        }
     }
 
     fn execute(&mut self, operation: RCPUOperation) {
@@ -251,7 +304,8 @@ impl RCPUProgram {
                 self.inc_register(RCPURegister::IP);
             }
             RCPUInstructionType::SYS => {
-                unimplemented!("Syscalls are not supported yet");
+                self.syscall();
+                self.inc_register(RCPURegister::IP);
             }
             RCPUInstructionType::HLT => {
                 self.running = false;
@@ -279,7 +333,7 @@ impl RCPUProgram {
         };
         self.execute(operation);
 
-        println!("New state: {:?}", self.state);
+        // println!("New state: {:?}", self.state);
     }
 
     pub fn from_module_tag(tag: &ModuleTag, memory_area: &MemoryArea) -> RCPUProgram {

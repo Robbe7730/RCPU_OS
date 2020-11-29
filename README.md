@@ -13,6 +13,7 @@ Rust][rust-os-blog]
 - The program expects a 16bit addressable memory space with the program loaded
   starting at 0
 - The binary contains pre-allocated space, which will be loaded with the program
+- All strings are ASCII (7 bit), not Latin-1
 
 [rcpu]: https://github.com/redfast00/RCPU
 [rust-os-blog]: https://os.phil-opp.com/
