@@ -14,6 +14,8 @@ Rust][rust-os-blog]
   starting at 0
 - The binary contains pre-allocated space, which will be loaded with the program
 - All strings are ASCII (7 bit), not Latin-1
+- RCPU\_OS stack grows **upwards** instead of downwards. RCPU has no way of
+  reading from/writing to SP, so this should not matter to the programs.
 
 [rcpu]: https://github.com/redfast00/RCPU
 [rust-os-blog]: https://os.phil-opp.com/
