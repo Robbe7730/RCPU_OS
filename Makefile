@@ -6,7 +6,7 @@ ISO := build/rcpu_os-$(ARCH).iso
 RUST_OS := target/$(TARGET)/debug/librcpu_os.a
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
-GRUB_CFG := src/arch/$(ARCH)/grub.cfg
+MK_GRUB_CFG := src/arch/$(ARCH)/mkgrubcfg.sh
 ASM_SRC_FILES := $(wildcard src/arch/$(ARCH)/*.asm)
 ASM_OBJ_FILES := $(patsubst src/arch/$(ARCH)/%.asm, \
 	build/arch/$(ARCH)/%.o, $(ASM_SRC_FILES))
@@ -28,7 +28,7 @@ $(ISO): $(KERNEL) $(GRUB_CFG)
 	mkdir -p build/isofiles/boot/grub
 	cp modules/* build/isofiles/boot
 	cp $(KERNEL) build/isofiles/boot/kernel.bin
-	cp $(GRUB_CFG) build/isofiles/boot/grub
+	$(MK_GRUB_CFG) modules > build/isofiles/boot/grub/grub.cfg
 	grub-mkrescue -o $(ISO) build/isofiles
 	rm -r build/isofiles
 
