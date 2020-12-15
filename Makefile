@@ -3,7 +3,7 @@ TARGET ?= $(ARCH)-rcpu_os
 
 KERNEL := build/kernel-$(ARCH).bin
 ISO := build/rcpu_os-$(ARCH).iso
-RUST_OS := target/$(TARGET)/debug/librcpu_os.a
+RUST_OS := target/$(TARGET)/release/librcpu_os.a
 
 LINKER_SCRIPT := src/arch/$(ARCH)/linker.ld
 MK_GRUB_CFG := src/arch/$(ARCH)/mkgrubcfg.sh
