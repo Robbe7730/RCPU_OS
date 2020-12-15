@@ -194,6 +194,7 @@ impl RCPUProgram {
     }
 
     fn get_character(&mut self, stream_num: u16) -> u16 {
+        // TODO: ASCII checks
         if stream_num != 0 {
             panic!("Invalid stream number: {}", stream_num);
         }
@@ -212,6 +213,7 @@ impl RCPUProgram {
     }
 
     fn get_string(&mut self, str_ptr: u16, size: u16, stream_num: u16) -> u16 {
+        // TODO: ASCII checks
         if stream_num != 0 {
             panic!("Invalid stream number: {}", stream_num);
         }

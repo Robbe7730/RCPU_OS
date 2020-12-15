@@ -37,7 +37,7 @@ $(KERNEL): kernel $(RUST_OS) $(ASM_OBJ_FILES) $(LINKER_SCRIPT)
 		$(ASM_OBJ_FILES) $(RUST_OS)
 
 kernel:
-	RUST_TARGET_PATH=$(shell pwd) cargo build --target $(TARGET)
+	RUST_TARGET_PATH=$(shell pwd) cargo build --release --target $(TARGET)
 
 # compile assembly files
 build/arch/$(ARCH)/%.o: src/arch/$(ARCH)/%.asm
